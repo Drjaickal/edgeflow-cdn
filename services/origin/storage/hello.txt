@@ -1,0 +1,2 @@
+Hello from EdgeFlow CDN!
+This file is stored in the Origin Server.

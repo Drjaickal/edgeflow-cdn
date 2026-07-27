@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+
+# Cache
+services/edge/cache/*
+!services/edge/cache/.gitkeep
+
+# Python cache
+.pytest_cache/
+
+# Logs
+*.log
