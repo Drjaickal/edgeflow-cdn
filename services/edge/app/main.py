@@ -1,4 +1,3 @@
-from pathlib import Path
 import asyncio
 from contextlib import asynccontextmanager
 
@@ -6,19 +5,13 @@ import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-# -----------------------
-# Configuration
-# -----------------------
-
-CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
-CACHE_DIR.mkdir(exist_ok=True)
-
-ORIGIN_URL = "http://127.0.0.1:8000"
-CONTROLLER_URL = "http://127.0.0.1:9000"
-
-EDGE_CITY = "Delhi"
-EDGE_PORT = 8001
-
+from services.edge.app.config import (
+    CACHE_DIR,
+    CONTROLLER_URL,
+    EDGE_CITY,
+    EDGE_PORT,
+    ORIGIN_URL,
+)
 
 # -----------------------
 # Heartbeat Loop
@@ -39,11 +32,11 @@ async def heartbeat_loop():
                     }
                 )
 
-                print("Heartbeat sent")
+                print(f"[{EDGE_CITY}] ❤️ Heartbeat sent")
 
         except Exception as e:
 
-            print("Heartbeat failed:", e)
+            print(f"[{EDGE_CITY}] ❌ Heartbeat failed:", e)
 
         await asyncio.sleep(10)
 
@@ -55,7 +48,15 @@ async def heartbeat_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    print("\nConnecting to Controller...")
+    print("\n===================================")
+    print("Starting EdgeFlow Edge Server")
+    print("===================================")
+    print(f"City        : {EDGE_CITY}")
+    print(f"Port        : {EDGE_PORT}")
+    print(f"Origin      : {ORIGIN_URL}")
+    print(f"Controller  : {CONTROLLER_URL}")
+    print(f"Cache       : {CACHE_DIR}")
+    print("===================================\n")
 
     try:
 
@@ -76,7 +77,6 @@ async def lifespan(app: FastAPI):
         print("Controller not reachable.")
         print(e)
 
-    # Start heartbeat in background
     asyncio.create_task(heartbeat_loop())
 
     yield
@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="EdgeFlow Edge Server",
-    version="3.0",
+    version="5.0",
     lifespan=lifespan
 )
 
@@ -96,31 +96,32 @@ app = FastAPI(
 @app.get("/")
 def home():
     return {
-        "message": "Edge Server Running"
+        "message": f"{EDGE_CITY} Edge Running"
     }
 
 
 @app.get("/health")
 def health():
     return {
-        "status": "healthy"
+        "status": "healthy",
+        "city": EDGE_CITY
     }
 
 
 @app.get("/files/{filename}")
 async def get_file(filename: str):
 
-    print(f"\nIncoming Request : {filename}")
+    print(f"\n[{EDGE_CITY}] Incoming Request : {filename}")
 
     cache_file = CACHE_DIR / filename
 
     if cache_file.exists():
 
-        print("CACHE HIT")
+        print(f"[{EDGE_CITY}] ✅ CACHE HIT")
 
         return FileResponse(cache_file)
 
-    print("CACHE MISS")
+    print(f"[{EDGE_CITY}] ❌ CACHE MISS")
 
     async with httpx.AsyncClient() as client:
 
@@ -136,6 +137,6 @@ async def get_file(filename: str):
 
     cache_file.write_bytes(response.content)
 
-    print("Downloaded from Origin")
+    print(f"[{EDGE_CITY}] Downloaded from Origin")
 
     return FileResponse(cache_file)
