@@ -6,10 +6,11 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(
     title="EdgeFlow Edge Server",
-    version="1.0"
+    version="1.1"
 )
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+CACHE_DIR.mkdir(exist_ok=True)
 
 ORIGIN_URL = "http://127.0.0.1:8000"
 
@@ -21,6 +22,13 @@ def home():
     }
 
 
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
+    }
+
+
 @app.get("/files/{filename}")
 async def get_file(filename: str):
 
@@ -28,9 +36,9 @@ async def get_file(filename: str):
 
     cache_file = CACHE_DIR / filename
 
-    # -------------------
+    # -------------------------
     # CACHE HIT
-    # -------------------
+    # -------------------------
     if cache_file.exists():
 
         print("✅ CACHE HIT")
@@ -38,9 +46,9 @@ async def get_file(filename: str):
 
         return FileResponse(cache_file)
 
-    # -------------------
+    # -------------------------
     # CACHE MISS
-    # -------------------
+    # -------------------------
 
     print("❌ CACHE MISS")
     print("Downloading from Origin Server...")
@@ -51,18 +59,17 @@ async def get_file(filename: str):
             f"{ORIGIN_URL}/files/{filename}"
         )
 
-        if response.status_code != 200:
+    if response.status_code != 200:
 
-            print("File not found on Origin\n")
+        print("File not found on Origin\n")
 
-            return {
-                "error": "File not found in Origin"
-            }
+        return {
+            "error": "File not found in Origin"
+        }
 
-        cache_file.write_bytes(response.content)
+    cache_file.write_bytes(response.content)
 
-        print("Saved into Cache")
-
+    print("Saved into Cache")
     print("Serving downloaded file\n")
 
     return FileResponse(cache_file)
