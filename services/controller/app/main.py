@@ -1,35 +1,67 @@
 import time
+import asyncio
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
+from pydantic import BaseModel
+
+from services.controller.app.registry import (
+    EDGE_SERVERS,
+    update_heartbeat,
+    cleanup_dead_edges
+)
+
+
+# -----------------------
+# Background Cleanup Task
+# -----------------------
+
+async def cleanup_loop():
+
+    while True:
+
+        cleanup_dead_edges()
+
+        await asyncio.sleep(5)
+
+
+# -----------------------
+# Lifespan
+# -----------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    print("Controller Started")
+    asyncio.create_task(cleanup_loop())
+
+    yield
+
 
 app = FastAPI(
     title="EdgeFlow Controller",
-    version="2.0"
+    version="4.0",
+    lifespan=lifespan
 )
 
+
 # -----------------------
-# Registered Edge Servers
+# Models
 # -----------------------
 
-EDGE_SERVERS = [
-    {
-        "id": 1,
-        "city": "Delhi",
-        "url": "http://127.0.0.1:8001"
-    },
-    {
-        "id": 2,
-        "city": "Mumbai",
-        "url": "http://127.0.0.1:8002"
-    },
-    {
-        "id": 3,
-        "city": "Bangalore",
-        "url": "http://127.0.0.1:8003"
-    }
-]
+class EdgeRegister(BaseModel):
+    city: str
+    url: str
 
+
+class Heartbeat(BaseModel):
+    url: str
+
+
+# -----------------------
+# Basic Routes
+# -----------------------
 
 @app.get("/")
 def home():
@@ -46,7 +78,66 @@ def health():
 
 
 # -----------------------
-# Get Live Edge Status
+# Register Edge
+# -----------------------
+
+@app.post("/register")
+async def register_edge(edge: EdgeRegister):
+
+    for server in EDGE_SERVERS:
+
+        if server["url"] == edge.url:
+
+            return {
+                "message": "Edge already registered",
+                "edge": server
+            }
+
+    new_edge = {
+        "id": len(EDGE_SERVERS) + 1,
+        "city": edge.city,
+        "url": edge.url,
+        "last_seen": time.time()
+    }
+
+    EDGE_SERVERS.append(new_edge)
+
+    return {
+        "message": "Edge Registered Successfully",
+        "edge": new_edge
+    }
+
+
+# -----------------------
+# Heartbeat
+# -----------------------
+
+@app.post("/heartbeat")
+async def heartbeat(data: Heartbeat):
+
+    updated = update_heartbeat(data.url)
+
+    if updated:
+        return {
+            "message": "Heartbeat received"
+        }
+
+    return {
+        "message": "Edge not registered"
+    }
+
+
+# -----------------------
+# Registered Edges
+# -----------------------
+
+@app.get("/registered")
+def registered_edges():
+    return EDGE_SERVERS
+
+
+# -----------------------
+# Live Edge Status
 # -----------------------
 
 @app.get("/edges")
@@ -96,7 +187,7 @@ async def get_edges():
 
 
 # -----------------------
-# Select Best Edge
+# Best Edge
 # -----------------------
 
 async def get_best_edge():
@@ -144,7 +235,7 @@ async def get_best_edge():
 
 
 # -----------------------
-# Best Edge Endpoint
+# Route File
 # -----------------------
 
 @app.get("/route/{filename}")
