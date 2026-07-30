@@ -13,6 +13,23 @@ from services.edge.app.config import (
     ORIGIN_URL,
 )
 
+# =====================================================
+# Edge Metrics
+# =====================================================
+
+TOTAL_REQUESTS = 0
+CACHE_HITS = 0
+CACHE_MISSES = 0
+
+
+def get_hit_ratio():
+
+    if TOTAL_REQUESTS == 0:
+        return 0.0
+
+    return round((CACHE_HITS / TOTAL_REQUESTS) * 100, 2)
+
+
 # -----------------------
 # Heartbeat Loop
 # -----------------------
@@ -84,7 +101,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="EdgeFlow Edge Server",
-    version="5.0",
+    version="6.0",
     lifespan=lifespan
 )
 
@@ -95,6 +112,7 @@ app = FastAPI(
 
 @app.get("/")
 def home():
+
     return {
         "message": f"{EDGE_CITY} Edge Running"
     }
@@ -102,32 +120,94 @@ def home():
 
 @app.get("/health")
 def health():
+
     return {
         "status": "healthy",
         "city": EDGE_CITY
     }
 
 
+# =====================================================
+# Metrics Endpoint
+# =====================================================
+
+@app.get("/metrics")
+def metrics():
+
+    return {
+
+        "city": EDGE_CITY,
+
+        "total_requests": TOTAL_REQUESTS,
+
+        "cache_hits": CACHE_HITS,
+
+        "cache_misses": CACHE_MISSES,
+
+        "cache_hit_ratio": get_hit_ratio()
+    }
+
+
+# =====================================================
+# File Endpoint
+# =====================================================
+
 @app.get("/files/{filename}")
 async def get_file(filename: str):
+
+    global TOTAL_REQUESTS
+    global CACHE_HITS
+    global CACHE_MISSES
+
+    TOTAL_REQUESTS += 1
 
     print(f"\n[{EDGE_CITY}] Incoming Request : {filename}")
 
     cache_file = CACHE_DIR / filename
 
+    # -----------------------
+    # Cache Hit
+    # -----------------------
+
     if cache_file.exists():
+
+        CACHE_HITS += 1
 
         print(f"[{EDGE_CITY}] ✅ CACHE HIT")
 
+        print(
+            f"[{EDGE_CITY}] Stats -> "
+            f"Requests={TOTAL_REQUESTS} | "
+            f"Hits={CACHE_HITS} | "
+            f"Misses={CACHE_MISSES} | "
+            f"Ratio={get_hit_ratio()}%"
+        )
+
         return FileResponse(cache_file)
+
+    # -----------------------
+    # Cache Miss
+    # -----------------------
+
+        CACHE_MISSES += 1
 
     print(f"[{EDGE_CITY}] ❌ CACHE MISS")
 
-    async with httpx.AsyncClient() as client:
+    url = f"{ORIGIN_URL}/files/{filename}"
+    print("REQUEST URL =", url)
 
-        response = await client.get(
-            f"{ORIGIN_URL}/files/{filename}"
-        )
+    try:
+
+        async with httpx.AsyncClient(timeout=5.0) as client:
+
+            response = await client.get(url)
+
+        print("STATUS =", response.status_code)
+
+    except Exception as e:
+
+        print("ERROR =", repr(e))
+        raise
 
     if response.status_code != 200:
 
@@ -138,5 +218,13 @@ async def get_file(filename: str):
     cache_file.write_bytes(response.content)
 
     print(f"[{EDGE_CITY}] Downloaded from Origin")
+
+    print(
+        f"[{EDGE_CITY}] Stats -> "
+        f"Requests={TOTAL_REQUESTS} | "
+        f"Hits={CACHE_HITS} | "
+        f"Misses={CACHE_MISSES} | "
+        f"Ratio={get_hit_ratio()}%"
+    )
 
     return FileResponse(cache_file)
