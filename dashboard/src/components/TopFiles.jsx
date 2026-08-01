@@ -1,151 +1,99 @@
-/* =========================
-   Imports
-========================= */
-
-import {
-    FileImage,
-    FileVideo,
-    FileCode,
-    FileText,
-} from "lucide-react";
-
-/* =========================
-   Sample Data
-========================= */
-
 const files = [
     {
         name: "hero-banner.jpg",
-        type: "image",
         requests: 1245,
-        percentage: 95,
+        hitRatio: 95,
+        type: "image",
     },
     {
         name: "product-demo.mp4",
-        type: "video",
         requests: 987,
-        percentage: 82,
+        hitRatio: 82,
+        type: "video",
     },
     {
         name: "style.css",
-        type: "code",
         requests: 856,
-        percentage: 70,
+        hitRatio: 70,
+        type: "css",
     },
     {
         name: "app.js",
-        type: "code",
         requests: 654,
-        percentage: 58,
+        hitRatio: 58,
+        type: "javascript",
     },
     {
         name: "README.md",
-        type: "text",
         requests: 430,
-        percentage: 42,
+        hitRatio: 42,
+        type: "document",
     },
 ];
 
-/* =========================
-   Helper Functions
-========================= */
-
-const getIcon = (type) => {
-
-    switch (type) {
-
-        case "image":
-            return <FileImage className="text-blue-400" size={20} />;
-
-        case "video":
-            return <FileVideo className="text-red-400" size={20} />;
-
-        case "code":
-            return <FileCode className="text-green-400" size={20} />;
-
-        default:
-            return <FileText className="text-yellow-400" size={20} />;
-
-    }
-
+const colors = {
+    image: "🖼️",
+    video: "🎥",
+    css: "🟢",
+    javascript: "🟡",
+    document: "📄",
 };
-
-/* =========================
-   Top Files Component
-========================= */
 
 function TopFiles() {
 
     return (
 
-        <div className="bg-[#111827] rounded-2xl border border-slate-800 p-6 h-[420px]">
+        <div className="bg-[#111827] rounded-2xl border border-gray-800 p-6 h-[420px]">
 
-            {/* =========================
-                Header
-            ========================= */}
+            <h2 className="text-2xl font-bold text-white">
+                Most Requested Content
+            </h2>
 
-            <div className="flex justify-between items-center mb-6">
-
-                <div>
-
-                    <h2 className="text-2xl font-bold text-white">
-                        Top Files
-                    </h2>
-
-                    <p className="text-slate-400 text-sm mt-1">
-                        Most requested content
-                    </p>
-
-                </div>
-
-                <span className="bg-violet-600 text-white text-xs px-3 py-1 rounded-full">
-                    Live
-                </span>
-
-            </div>
-
-            {/* =========================
-                File List
-            ========================= */}
+            <p className="text-gray-400 mt-1 mb-6">
+                Top cached assets
+            </p>
 
             <div className="space-y-5">
 
-                {files.map((file, index) => (
+                {files.map((file) => (
 
-                    <div key={index}>
+                    <div
+                        key={file.name}
+                        className="space-y-2"
+                    >
 
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex justify-between items-center">
 
-                            <div className="flex items-center gap-3">
+                            <div>
 
-                                {getIcon(file.type)}
+                                <p className="text-white font-medium">
 
-                                <div>
+                                    {colors[file.type]} {file.name}
 
-                                    <p className="text-white text-sm font-medium">
-                                        {file.name}
-                                    </p>
+                                </p>
 
-                                    <p className="text-slate-400 text-xs">
-                                        {file.requests.toLocaleString()} Requests
-                                    </p>
+                                <p className="text-gray-400 text-sm">
 
-                                </div>
+                                    {file.requests.toLocaleString()} Requests
+
+                                </p>
 
                             </div>
 
-                            <span className="text-violet-400 font-semibold">
-                                {file.percentage}%
+                            <span className="text-violet-400 font-bold">
+
+                                {file.hitRatio}%
+
                             </span>
 
                         </div>
 
-                        <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="w-full bg-[#1F2937] rounded-full h-2">
 
                             <div
-                                className="bg-violet-500 h-2 rounded-full transition-all duration-700"
+                                className="bg-violet-500 h-2 rounded-full"
                                 style={{
-                                    width: `${file.percentage}%`,
+                                    width: `${file.hitRatio}%`,
                                 }}
                             />
 
@@ -154,26 +102,6 @@ function TopFiles() {
                     </div>
 
                 ))}
-
-            </div>
-
-            {/* =========================
-                Footer
-            ========================= */}
-
-            <div className="border-t border-slate-700 mt-6 pt-4">
-
-                <div className="flex justify-between">
-
-                    <span className="text-slate-400">
-                        Total Files
-                    </span>
-
-                    <span className="text-white font-semibold">
-                        {files.length}
-                    </span>
-
-                </div>
 
             </div>
 

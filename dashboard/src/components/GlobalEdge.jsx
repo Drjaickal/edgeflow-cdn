@@ -1,159 +1,177 @@
-/* =========================
+/* ==========================================================
    Imports
-========================= */
+========================================================== */
 
-import { Server, Circle } from "lucide-react";
+import {
+    Server,
+    CheckCircle,
+    XCircle,
+} from "lucide-react";
 
-/* =========================
-   Fallback Data
-========================= */
+/* ==========================================================
+   Component
+========================================================== */
 
-const defaultEdges = [
-    {
-        city: "Delhi",
-        url: "http://127.0.0.1:8001",
-    },
-    {
-        city: "Mumbai",
-        url: "http://127.0.0.1:8002",
-    },
-    {
-        city: "Bangalore",
-        url: "http://127.0.0.1:8003",
-    },
-];
+function GlobalEdge({
 
-/* =========================
-   Global Edge Component
-========================= */
+    edges = [],
 
-function GlobalEdge({ edges = [], metrics = [] }) {
+    metrics = [],
 
-    /* =========================
-       Select Data Source
-    ========================= */
-
-    const edgeList = edges.length ? edges : defaultEdges;
-
-    /* =========================
-       Render
-    ========================= */
+}) {
 
     return (
 
-        <div className="bg-[#111827] rounded-2xl border border-slate-800 p-6">
+        <div className="bg-[#111827] rounded-2xl border border-gray-800 p-6">
 
-            {/* =========================
+            {/* ==================================================
                 Header
-            ========================= */}
+            =================================================== */}
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center justify-between mb-6">
 
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-3xl font-bold text-white">
+
                     Global Edge Network
+
                 </h2>
 
-                <span className="text-green-400 text-sm">
+                <span className="text-green-400 font-medium">
+
                     ● Live
+
                 </span>
 
             </div>
 
-            {/* =========================
+            {/* ==================================================
                 World Map Placeholder
-            ========================= */}
+            =================================================== */}
 
-            <div className="h-48 rounded-xl bg-[#0f172a] border border-slate-700 flex items-center justify-center mb-6">
+            <div className="h-52 rounded-xl border border-gray-700 flex items-center justify-center text-gray-500 mb-6">
 
-                <h2 className="text-slate-500 text-lg">
-                    🌍 World Map (Coming Soon)
-                </h2>
+                🌍 World Map (Coming Soon)
 
             </div>
 
-            {/* =========================
-                Edge Servers
-            ========================= */}
+            {/* ==================================================
+                Edge Cards
+            =================================================== */}
 
             <div className="space-y-4">
 
-                {edgeList.map((edge, index) => {
+                {edges.map((edge) => {
 
                     const metric = metrics.find(
-                        (m) => m.city === edge.city
+
+                        (m) => m.edge === edge.name
+
                     );
 
                     return (
 
                         <div
-                            key={index}
-                            className="bg-[#0f172a] border border-slate-700 rounded-xl p-4 hover:border-violet-600 transition-all"
+                            key={edge.name}
+                            className="border border-violet-700 rounded-xl p-5 bg-[#0F172A]"
                         >
+
+                            {/* ==============================
+                                Header
+                            =============================== */}
 
                             <div className="flex justify-between items-center">
 
-                                <div className="flex items-center gap-3">
+                                <div className="flex gap-3 items-center">
 
                                     <Server
-                                        className="text-violet-400"
                                         size={22}
+                                        className="text-violet-400"
                                     />
 
                                     <div>
 
-                                        <h3 className="text-white font-semibold">
-                                            {edge.city}
+                                        <h3 className="text-xl text-white font-semibold">
+
+                                            {edge.name}
+
                                         </h3>
 
-                                        <p className="text-slate-400 text-sm">
-                                            {edge.url}
+                                        <p className="text-gray-400 text-sm">
+
+                                            http://{edge.host}:{edge.port}
+
                                         </p>
 
                                     </div>
 
                                 </div>
 
-                                <Circle
-                                    size={12}
-                                    className="fill-green-500 text-green-500"
-                                />
+                                {edge.online ? (
+
+                                    <CheckCircle
+                                        className="text-green-400"
+                                    />
+
+                                ) : (
+
+                                    <XCircle
+                                        className="text-red-500"
+                                    />
+
+                                )}
 
                             </div>
+
+                            {/* ==============================
+                                Metrics
+                            =============================== */}
 
                             <div className="grid grid-cols-3 gap-4 mt-5">
 
                                 <div>
 
-                                    <p className="text-slate-400 text-xs">
+                                    <p className="text-gray-400 text-sm">
+
                                         Requests
+
                                     </p>
 
-                                    <h4 className="text-white font-semibold mt-1">
+                                    <h4 className="text-cyan-400 text-lg font-bold">
+
                                         {metric?.total_requests ?? "--"}
+
                                     </h4>
 
                                 </div>
 
                                 <div>
 
-                                    <p className="text-slate-400 text-xs">
+                                    <p className="text-gray-400 text-sm">
+
                                         Cache Hit
+
                                     </p>
 
-                                    <h4 className="text-green-400 font-semibold mt-1">
+                                    <h4 className="text-green-400 text-lg font-bold">
+
                                         {metric?.cache_hit_ratio ?? "--"}%
+
                                     </h4>
 
                                 </div>
 
                                 <div>
 
-                                    <p className="text-slate-400 text-xs">
+                                    <p className="text-gray-400 text-sm">
+
                                         Latency
+
                                     </p>
 
-                                    <h4 className="text-cyan-400 font-semibold mt-1">
+                                    <h4 className="text-sky-400 text-lg font-bold">
+
                                         {metric?.average_latency ?? "--"} ms
+
                                     </h4>
 
                                 </div>

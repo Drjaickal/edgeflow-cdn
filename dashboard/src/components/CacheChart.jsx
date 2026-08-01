@@ -1,21 +1,12 @@
-/* =========================
-   Imports
-========================= */
-
 import {
-    ResponsiveContainer,
     PieChart,
     Pie,
     Cell,
-    Legend,
     Tooltip,
+    ResponsiveContainer,
 } from "recharts";
 
-/* =========================
-   Sample Data
-========================= */
-
-const cacheData = [
+const data = [
     {
         name: "Cache Hit",
         value: 10732,
@@ -27,73 +18,52 @@ const cacheData = [
 ];
 
 const COLORS = [
-    "#22c55e",
-    "#ef4444",
+    "#22C55E",
+    "#DC2626",
 ];
-
-/* =========================
-   Cache Chart Component
-========================= */
 
 function CacheChart() {
 
-    /* =========================
-       Calculations
-    ========================= */
-
-    const total = cacheData.reduce(
+    const total = data.reduce(
         (sum, item) => sum + item.value,
         0
     );
 
     const hitRatio = (
-        (cacheData[0].value / total) * 100
+        (data[0].value / total) * 100
     ).toFixed(1);
-
-    /* =========================
-       Render
-    ========================= */
 
     return (
 
-        <div className="bg-[#111827] rounded-2xl border border-slate-800 p-6 h-[420px]">
+        <div className="bg-[#111827] rounded-2xl border border-gray-800 p-6 h-[420px]">
 
-            {/* =========================
-                Header
-            ========================= */}
+            {/* Header */}
 
-            <div className="mb-5">
+            <h2 className="text-2xl font-bold text-white">
+                CDN Cache Efficiency
+            </h2>
 
-                <h2 className="text-2xl font-bold text-white">
-                    Cache Performance
-                </h2>
+            <p className="text-gray-400 mt-1">
+                Cache efficiency overview
+            </p>
 
-                <p className="text-slate-400 text-sm mt-1">
-                    CDN cache efficiency overview
-                </p>
+            {/* Chart */}
 
-            </div>
-
-            {/* =========================
-                Donut Chart
-            ========================= */}
-
-            <div className="relative h-52">
+            <div className="h-64 mt-4">
 
                 <ResponsiveContainer width="100%" height="100%">
 
                     <PieChart>
 
                         <Pie
-                            data={cacheData}
+                            data={data}
+                            innerRadius={70}
+                            outerRadius={95}
                             dataKey="value"
-                            innerRadius={60}
-                            outerRadius={85}
-                            paddingAngle={5}
-                            stroke="none"
+                            paddingAngle={3}
                         >
 
-                            {cacheData.map((entry, index) => (
+                            {data.map((entry, index) => (
 
                                 <Cell
                                     key={index}
@@ -104,81 +74,93 @@ function CacheChart() {
 
                         </Pie>
 
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: "#0f172a",
-                                border: "1px solid #334155",
-                                borderRadius: "10px",
-                            }}
-                        />
-
-                        <Legend />
+                        <Tooltip />
 
                     </PieChart>
 
                 </ResponsiveContainer>
 
-                {/* =========================
-                    Center Text
-                ========================= */}
+            </div>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            {/* Center Stats */}
 
-                    <h2 className="text-4xl font-bold text-white">
-                        {hitRatio}%
-                    </h2>
+            <div className="-mt-36 flex flex-col items-center">
 
-                    <p className="text-slate-400 text-sm">
-                        Hit Ratio
-                    </p>
+                <span className="text-5xl font-bold text-white">
 
-                </div>
+                    {hitRatio}%
+
+                </span>
+
+                <span className="text-gray-400">
+
+                    Hit Ratio
+
+                </span>
 
             </div>
 
-            {/* =========================
-                Statistics
-            ========================= */}
+            {/* Details */}
 
-            <div className="space-y-4 mt-4">
+            <div className="mt-24 space-y-3">
 
                 <div className="flex justify-between">
 
-                    <span className="text-green-400">
-                        ● Cache Hit
-                    </span>
+                    <div className="flex items-center gap-2">
 
-                    <span className="text-white font-semibold">
-                        {cacheData[0].value.toLocaleString()}
-                    </span>
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
 
-                </div>
+                        <span className="text-gray-300">
 
-                <div className="flex justify-between">
+                            Cache Hit
 
-                    <span className="text-red-400">
-                        ● Cache Miss
-                    </span>
-
-                    <span className="text-white font-semibold">
-                        {cacheData[1].value.toLocaleString()}
-                    </span>
-
-                </div>
-
-                <div className="border-t border-slate-700 pt-4 mt-4">
-
-                    <div className="flex justify-between">
-
-                        <span className="text-slate-400">
-                            Cache Efficiency
-                        </span>
-
-                        <span className="text-green-400 font-bold">
-                            Excellent
                         </span>
 
                     </div>
+
+                    <span className="text-green-400 font-semibold">
+
+                        {data[0].value.toLocaleString()}
+
+                    </span>
+
+                </div>
+
+                <div className="flex justify-between">
+
+                    <div className="flex items-center gap-2">
+
+                        <div className="w-3 h-3 rounded-full bg-red-500" />
+
+                        <span className="text-gray-300">
+
+                            Cache Miss
+
+                        </span>
+
+                    </div>
+
+                    <span className="text-red-400 font-semibold">
+
+                        {data[1].value.toLocaleString()}
+
+                    </span>
+
+                </div>
+
+                <div className="pt-2 border-t border-gray-700 flex justify-between">
+
+                    <span className="text-gray-400">
+
+                        Cache Efficiency
+
+                    </span>
+
+                    <span className="text-green-400 font-bold">
+
+                        Excellent
+
+                    </span>
 
                 </div>
 

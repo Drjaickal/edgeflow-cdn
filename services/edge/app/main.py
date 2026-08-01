@@ -1,230 +1,203 @@
-import asyncio
-from contextlib import asynccontextmanager
+"""
+============================================================
+EdgeFlow CDN
+Edge Server
+------------------------------------------------------------
+Edge Server Responsibilities
 
-import httpx
+• Serve cached files
+• Fetch files from Origin
+• Maintain cache
+• Collect metrics
+• Report health
+============================================================
+"""
+
+# ============================================================
+# Imports
+# ============================================================
+
+import shutil
+import time
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from services.edge.app.config import (
-    CACHE_DIR,
-    CONTROLLER_URL,
-    EDGE_CITY,
-    EDGE_PORT,
-    ORIGIN_URL,
-)
+from shared.constants.config import CACHE_DIRECTORY
 
-# =====================================================
-# Edge Metrics
-# =====================================================
+from .cache import cache
+from .fetcher import fetch_file
+from .metrics import metrics
 
-TOTAL_REQUESTS = 0
-CACHE_HITS = 0
-CACHE_MISSES = 0
-
-
-def get_hit_ratio():
-
-    if TOTAL_REQUESTS == 0:
-        return 0.0
-
-    return round((CACHE_HITS / TOTAL_REQUESTS) * 100, 2)
-
-
-# -----------------------
-# Heartbeat Loop
-# -----------------------
-
-async def heartbeat_loop():
-
-    while True:
-
-        try:
-
-            async with httpx.AsyncClient() as client:
-
-                await client.post(
-                    f"{CONTROLLER_URL}/heartbeat",
-                    json={
-                        "url": f"http://127.0.0.1:{EDGE_PORT}"
-                    }
-                )
-
-                print(f"[{EDGE_CITY}] ❤️ Heartbeat sent")
-
-        except Exception as e:
-
-            print(f"[{EDGE_CITY}] ❌ Heartbeat failed:", e)
-
-        await asyncio.sleep(10)
-
-
-# -----------------------
-# Startup
-# -----------------------
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-
-    print("\n===================================")
-    print("Starting EdgeFlow Edge Server")
-    print("===================================")
-    print(f"City        : {EDGE_CITY}")
-    print(f"Port        : {EDGE_PORT}")
-    print(f"Origin      : {ORIGIN_URL}")
-    print(f"Controller  : {CONTROLLER_URL}")
-    print(f"Cache       : {CACHE_DIR}")
-    print("===================================\n")
-
-    try:
-
-        async with httpx.AsyncClient() as client:
-
-            response = await client.post(
-                f"{CONTROLLER_URL}/register",
-                json={
-                    "city": EDGE_CITY,
-                    "url": f"http://127.0.0.1:{EDGE_PORT}"
-                }
-            )
-
-            print(response.json())
-
-    except Exception as e:
-
-        print("Controller not reachable.")
-        print(e)
-
-    asyncio.create_task(heartbeat_loop())
-
-    yield
-
+# ============================================================
+# FastAPI
+# ============================================================
 
 app = FastAPI(
     title="EdgeFlow Edge Server",
-    version="6.0",
-    lifespan=lifespan
+    version="2.0.0",
 )
 
+# ============================================================
+# Initialize Cache Folder
+# ============================================================
 
-# -----------------------
-# Routes
-# -----------------------
+CACHE_DIRECTORY.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+# ============================================================
+# Root Endpoint
+# ============================================================
 
 @app.get("/")
-def home():
+def root():
 
     return {
-        "message": f"{EDGE_CITY} Edge Running"
+
+        "service": "Edge Server",
+
+        "status": "running",
+
+        "version": "2.0.0",
+
     }
 
+# ============================================================
+# Health Endpoint
+# ============================================================
 
 @app.get("/health")
 def health():
 
+    stats = cache.stats()
+
     return {
+
         "status": "healthy",
-        "city": EDGE_CITY
+
+        "cache_directory": str(
+            CACHE_DIRECTORY
+        ),
+
+        "cached_files": stats["cached_files"],
+
+        "cache_size": stats[
+            "cache_size_bytes"
+        ],
+
     }
 
-
-# =====================================================
+# ============================================================
 # Metrics Endpoint
-# =====================================================
+# ============================================================
 
 @app.get("/metrics")
-def metrics():
+def get_metrics():
+
+    return metrics.to_dict()
+# ============================================================
+# Serve File
+# ============================================================
+
+@app.get("/file/{filename}")
+def serve_file(filename: str):
+
+    start_time = time.time()
+
+    # --------------------------------------------------------
+    # Remove Expired Cache
+    # --------------------------------------------------------
+
+    cache.cleanup()
+
+    # --------------------------------------------------------
+    # Cache Hit
+    # --------------------------------------------------------
+
+    if cache.exists(filename):
+
+        cache.touch(filename)
+
+        file_path = cache.path(filename)
+
+        latency = (
+            time.time() - start_time
+        ) * 1000
+
+        metrics.record_hit(
+
+            latency=latency,
+
+            size=file_path.stat().st_size,
+
+        )
+
+        return FileResponse(file_path)
+
+    # --------------------------------------------------------
+    # Cache Miss
+    # --------------------------------------------------------
+
+    content = fetch_file(filename)
+
+    if content is None:
+
+        return {
+
+            "status": "error",
+
+            "message": "Requested file not found on Origin Server.",
+
+        }
+
+    cache.save(
+
+        filename,
+
+        content,
+
+    )
+
+    file_path = cache.path(filename)
+
+    latency = (
+        time.time() - start_time
+    ) * 1000
+
+    metrics.record_miss(
+
+        latency=latency,
+
+        size=file_path.stat().st_size,
+
+    )
+
+    return FileResponse(file_path)
+
+# ============================================================
+# Cache Statistics
+# ============================================================
+
+@app.get("/cache")
+def cache_information():
+
+    return cache.stats()
+
+# ============================================================
+# Clear Cache
+# ============================================================
+
+@app.post("/cache/clear")
+def clear_cache():
+
+    cache.clear()
 
     return {
 
-        "city": EDGE_CITY,
+        "status": "success",
 
-        "total_requests": TOTAL_REQUESTS,
+        "message": "Edge cache cleared successfully."
 
-        "cache_hits": CACHE_HITS,
-
-        "cache_misses": CACHE_MISSES,
-
-        "cache_hit_ratio": get_hit_ratio()
     }
-
-
-# =====================================================
-# File Endpoint
-# =====================================================
-
-@app.get("/files/{filename}")
-async def get_file(filename: str):
-
-    global TOTAL_REQUESTS
-    global CACHE_HITS
-    global CACHE_MISSES
-
-    TOTAL_REQUESTS += 1
-
-    print(f"\n[{EDGE_CITY}] Incoming Request : {filename}")
-
-    cache_file = CACHE_DIR / filename
-
-    # -----------------------
-    # Cache Hit
-    # -----------------------
-
-    if cache_file.exists():
-
-        CACHE_HITS += 1
-
-        print(f"[{EDGE_CITY}] ✅ CACHE HIT")
-
-        print(
-            f"[{EDGE_CITY}] Stats -> "
-            f"Requests={TOTAL_REQUESTS} | "
-            f"Hits={CACHE_HITS} | "
-            f"Misses={CACHE_MISSES} | "
-            f"Ratio={get_hit_ratio()}%"
-        )
-
-        return FileResponse(cache_file)
-
-    # -----------------------
-    # Cache Miss
-    # -----------------------
-
-        CACHE_MISSES += 1
-
-    print(f"[{EDGE_CITY}] ❌ CACHE MISS")
-
-    url = f"{ORIGIN_URL}/files/{filename}"
-    print("REQUEST URL =", url)
-
-    try:
-
-        async with httpx.AsyncClient(timeout=5.0) as client:
-
-            response = await client.get(url)
-
-        print("STATUS =", response.status_code)
-
-    except Exception as e:
-
-        print("ERROR =", repr(e))
-        raise
-
-    if response.status_code != 200:
-
-        return {
-            "error": "File not found"
-        }
-
-    cache_file.write_bytes(response.content)
-
-    print(f"[{EDGE_CITY}] Downloaded from Origin")
-
-    print(
-        f"[{EDGE_CITY}] Stats -> "
-        f"Requests={TOTAL_REQUESTS} | "
-        f"Hits={CACHE_HITS} | "
-        f"Misses={CACHE_MISSES} | "
-        f"Ratio={get_hit_ratio()}%"
-    )
-
-    return FileResponse(cache_file)

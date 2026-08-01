@@ -2,42 +2,43 @@ import {
     AlertTriangle,
     CheckCircle2,
     Info,
-    Clock,
 } from "lucide-react";
 
 const alerts = [
     {
         id: 1,
-        type: "warning",
-        title: "High Latency",
-        message: "Mumbai Edge latency increased to 68 ms.",
+        type: "success",
+        title: "Delhi Edge Server Online",
+        description: "All services are operating normally.",
         time: "2 min ago",
     },
     {
         id: 2,
-        type: "success",
-        title: "Edge Server Healthy",
-        message: "Delhi Edge is operating normally.",
-        time: "5 min ago",
+        type: "warning",
+        title: "High Latency Detected",
+        description: "Mumbai edge latency exceeded 80 ms.",
+        time: "8 min ago",
     },
     {
         id: 3,
         type: "info",
-        title: "Cache Optimized",
-        message: "Cache hit ratio improved to 85.6%.",
-        time: "12 min ago",
+        title: "Cache Cleanup Completed",
+        description: "Expired cache objects removed successfully.",
+        time: "18 min ago",
     },
     {
         id: 4,
-        type: "warning",
-        title: "Cache Miss Spike",
-        message: "Origin server received more requests than usual.",
-        time: "18 min ago",
+        type: "success",
+        title: "Origin Server Connected",
+        description: "Origin storage is healthy.",
+        time: "25 min ago",
     },
 ];
 
-const getIcon = (type) => {
+function getIcon(type) {
+
     switch (type) {
+
         case "success":
             return (
                 <CheckCircle2
@@ -61,45 +62,65 @@ const getIcon = (type) => {
                     size={22}
                 />
             );
+
     }
-};
+
+}
 
 function Alerts() {
+
     return (
-        <div className="bg-[#111827] rounded-2xl border border-slate-800 p-6">
 
-            <h2 className="text-2xl font-bold text-white mb-6">
-                System Alerts
-            </h2>
+        <div className="bg-[#111827] rounded-2xl border border-gray-800 p-6 h-[420px]">
 
-            <div className="space-y-5">
+            <div className="flex justify-between items-center mb-6">
+
+                <h2 className="text-2xl font-bold text-white">
+
+                    System Alerts
+
+                </h2>
+
+                <span className="text-green-400 text-sm">
+
+                    Live
+
+                </span>
+
+            </div>
+
+            <div className="space-y-4">
 
                 {alerts.map((alert) => (
 
                     <div
                         key={alert.id}
-                        className="flex gap-4 p-4 rounded-xl bg-[#0f172a] border border-slate-700 hover:border-violet-600 transition"
+                        className="bg-[#1A2332] rounded-xl p-4 border border-gray-700 hover:border-violet-500 transition-all"
                     >
 
-                        <div>
+                        <div className="flex gap-3">
+
                             {getIcon(alert.type)}
-                        </div>
 
-                        <div className="flex-1">
+                            <div className="flex-1">
 
-                            <h3 className="text-white font-semibold">
-                                {alert.title}
-                            </h3>
+                                <h3 className="text-white font-semibold">
 
-                            <p className="text-slate-400 text-sm mt-1">
-                                {alert.message}
-                            </p>
+                                    {alert.title}
 
-                            <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+                                </h3>
 
-                                <Clock size={14} />
+                                <p className="text-gray-400 text-sm mt-1">
 
-                                {alert.time}
+                                    {alert.description}
+
+                                </p>
+
+                                <span className="text-xs text-gray-500 mt-2 block">
+
+                                    {alert.time}
+
+                                </span>
 
                             </div>
 
@@ -112,7 +133,9 @@ function Alerts() {
             </div>
 
         </div>
+
     );
+
 }
 
 export default Alerts;
